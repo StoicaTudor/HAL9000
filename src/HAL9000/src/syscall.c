@@ -64,8 +64,22 @@ SyscallHandler(
         // Dispatch syscalls
         switch (sysCallId)
         {
+
         case SyscallIdIdentifyVersion:
             status = SyscallValidateInterface((SYSCALL_IF_VERSION)*pSyscallParameters);
+            break;
+
+        case SyscallIdFileWrite:
+            status = SyscallFileWrite(
+                (UM_HANDLE)pSyscallParameters[0],
+                (PVOID)pSyscallParameters[1],
+                (QWORD)pSyscallParameters[2],
+                (QWORD*)pSyscallParameters[3]
+                );
+            break;
+
+        case SyscallIdProcessExit:
+            status = SyscallProcessExit((STATUS)pSyscallParameters[0]);
             break;
         // STUDENT TODO: implement the rest of the syscalls
         default:
@@ -170,3 +184,53 @@ SyscallValidateInterface(
 }
 
 // STUDENT TODO: implement the rest of the syscalls
+
+STATUS
+SyscallFileWrite(
+    IN UM_HANDLE FileHandle,
+    IN_READS_BYTES(BytesToWrite)
+    PVOID Buffer,
+    IN QWORD BytesToWrite,
+    OUT QWORD* BytesWritten
+)
+{
+    STATUS status;
+
+    status = MmuIsBufferValid(
+        Buffer,
+        sizeof(Buffer),
+        PAGE_RIGHTS_READ,
+        GetCurrentProcess()
+    );
+
+    if(!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("MmuIsBufferValid", status);
+        return status;
+    }
+
+    if(FileHandle == UM_FILE_HANDLE_STDOUT)
+    {
+        LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
+    }
+
+    *BytesWritten = BytesToWrite;
+
+    return STATUS_SUCCESS;
+}
+
+STATUS
+SyscallProcessExit(
+    IN      STATUS                  ExitStatus
+)
+{
+    UNREFERENCED_PARAMETER(ExitStatus);
+    ProcessTerminate(NULL);
+
+    return STATUS_SUCCESS;
+}
+// syscall thread exit
+
+//ThreadExit(ExitStatus)
+
+// add includ "thread.h"

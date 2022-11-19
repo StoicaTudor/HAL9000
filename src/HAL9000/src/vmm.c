@@ -270,6 +270,9 @@ VmmMapMemoryInternal(
 
     cr3.Raw = (QWORD) PagingData->BasePhysicalAddress;
 
+    LOG("Will map virtual address 0x%X to physical address 0x%X\n",
+        BaseAddress, PhysicalAddress);
+
     _VmWalkPagingTables(cr3,
                         BaseAddress,
                         Size,
@@ -446,12 +449,12 @@ VmmChangeCr3(
     // Intel System Programming Manual Vol 3C
     // Section 4.10.4.1 Operations that Invalidate TLBs and Paging-Structure Caches
 
-    // If CR4.PCIDE = 1 and bit 63 of the instruction’s source operand is 0, the instruction invalidates all TLB
-    // entries associated with the PCID specified in bits 11:0 of the instruction’s source operand except those for
+    // If CR4.PCIDE = 1 and bit 63 of the instructionï¿½s source operand is 0, the instruction invalidates all TLB
+    // entries associated with the PCID specified in bits 11:0 of the instructionï¿½s source operand except those for
     // global pages.It also invalidates all entries in all paging - structure caches associated with that PCID.It is not
     // required to invalidate entries in the TLBs and paging - structure caches that are associated with other PCIDs.
 
-    // If CR4.PCIDE = 1 and bit 63 of the instruction’s source operand is 1, the instruction is not required to
+    // If CR4.PCIDE = 1 and bit 63 of the instructionï¿½s source operand is 1, the instruction is not required to
     // invalidate any TLB entries or entries in paging - structure caches.
     __writecr3((Invalidate ? 0 : MOV_TO_CR3_DO_NOT_INVALIDATE_PCID_MAPPINGS) | (QWORD)Pml4Base | Pcid);
 
