@@ -196,6 +196,7 @@ SyscallFileWrite(
 {
     STATUS status;
 
+    // ne trebuie drepturi de read pt a citi din buffer
     status = MmuIsBufferValid(
         Buffer,
         sizeof(Buffer),

@@ -150,6 +150,7 @@ _IsrExceptionHandler(
         DWORD noOfStackElementsToDump;
         PPCPU pCpu;
 
+        // daca vine din user mode
         if(!GdtIsSegmentPrivileged((WORD)StackPointer->Registers.CS))
         {
             ProcessTerminate(NULL);
