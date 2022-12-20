@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "process_internal.h"
 #include "dmp_cpu.h"
+#include "thread_internal.h"
 
 extern void SyscallEntry();
 
@@ -81,7 +82,45 @@ SyscallHandler(
         case SyscallIdProcessExit:
             status = SyscallProcessExit((STATUS)pSyscallParameters[0]);
             break;
-        // STUDENT TODO: implement the rest of the syscalls
+
+        case SyscallIdThreadGetName:
+            status = SyscallThreadGetName(
+                (char*)pSyscallParameters[0],
+                (QWORD)pSyscallParameters[1]
+                );
+            break;
+
+        case SyscallIdThreadGetTid:
+            status = SyscallThreadGetTid(
+                (UM_HANDLE)pSyscallParameters[0],
+                (TID *)pSyscallParameters[1]
+                );
+            break;
+            
+        case SyscallIdGetTotalThreadNo:
+            status = SyscallGetTotalThreadNo(
+                (QWORD*)pSyscallParameters[0]
+                );
+            break;
+            
+        case SyscallIdGetThreadUmStackAddress:
+            status = SyscallGetThreadUmStackAddress(
+                (PVOID*)pSyscallParameters[0]
+                );
+            break;
+
+        case SyscallIdGetThreadUmStackSize:
+            status = SyscallGetThreadUmStackSize(
+                (QWORD*)pSyscallParameters[0]
+                );
+            break;
+
+        case SyscallIdGetThreadUmEntryPoint:
+            status = SyscallGetThreadUmEntryPoint(
+                (PVOID*)pSyscallParameters[0]
+                );
+            break;
+
         default:
             LOG_ERROR("Unimplemented syscall called from User-space!\n");
             status = STATUS_UNSUPPORTED;
@@ -199,21 +238,26 @@ SyscallFileWrite(
     // ne trebuie drepturi de read pt a citi din buffer
     status = MmuIsBufferValid(
         Buffer,
-        sizeof(Buffer),
+        BytesToWrite,
+        PAGE_RIGHTS_READ,
+        GetCurrentProcess()
+    );
+
+    status = MmuIsBufferValid(
+        BytesWritten,
+        sizeof(BytesWritten),
         PAGE_RIGHTS_READ,
         GetCurrentProcess()
     );
 
     if(!SUCCEEDED(status))
     {
-        LOG_FUNC_ERROR("MmuIsBufferValid", status);
+        LOG_FUNC_ERROR("MmuIsBufferValid for ", status);
         return status;
     }
 
     if(FileHandle == UM_FILE_HANDLE_STDOUT)
-    {
         LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
-    }
 
     *BytesWritten = BytesToWrite;
 
@@ -235,3 +279,169 @@ SyscallProcessExit(
 //ThreadExit(ExitStatus)
 
 // add includ "thread.h"
+
+STATUS
+SyscallThreadGetTid(
+    IN_OPT  UM_HANDLE               ThreadHandle,
+    OUT     TID*                    ThreadId
+)
+{
+    STATUS status = MmuIsBufferValid(
+        ThreadId,
+        sizeof(ThreadId),
+        PAGE_RIGHTS_ALL,
+        GetCurrentProcess()
+    );
+
+    if(!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("MmuIsBufferValid for SyscallThreadGetTid", status);
+        return status;
+    }
+
+    if(ThreadHandle == UM_INVALID_HANDLE_VALUE)
+    {
+        *ThreadId = ThreadGetId(NULL);
+        return STATUS_SUCCESS;
+    }
+
+    // if(&HandleThreadPairsList == NULL)
+    //     return STATUS_INTERNAL_ERROR;
+
+    // PLIST_ENTRY pCurrentEntry;
+
+    // pCurrentEntry = HandleThreadPairsList.List.Flink;
+
+    // while(pCurrentEntry != &HandleThreadPairsList.List)
+    // {
+    //     PHandleThreadPair currentListElement = CONTAINING_RECORD(&pCurrentEntry, HandleThreadPair, List);
+        
+    //     if(currentListElement->UmHandle == ThreadHandle)
+    //     {
+    //         *ThreadId = currentListElement->PThread->Id;
+    //         return STATUS_SUCCESS;
+    //     }
+
+    //     pCurrentEntry = pCurrentEntry->Flink;
+    // }
+
+    return STATUS_INTERNAL_ERROR;
+}
+
+STATUS
+SyscallThreadGetName(
+    OUT char* ThreadName,
+    IN QWORD ThreadNameMaxLen
+    )
+{
+    STATUS status = MmuIsBufferValid(
+        ThreadName,
+        sizeof(ThreadName),
+        PAGE_RIGHTS_ALL,
+        GetCurrentProcess()
+    );
+
+    if(!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("MmuIsBufferValid for SyscallThreadGetName", status);
+        return status;
+    }
+
+    cl_strncpy(ThreadName, GetCurrentThread()->Name, (DWORD) ThreadNameMaxLen);
+
+    status = STATUS_SUCCESS;
+
+    if(ThreadNameMaxLen > strlen(ThreadName))
+        status = STATUS_TRUNCATED_THREAD_NAME;
+
+    return status;
+}
+
+STATUS 
+SyscallGetTotalThreadNo(
+    OUT QWORD* ThreadNo
+    )
+{
+    STATUS status = MmuIsBufferValid(
+        ThreadNo,
+        sizeof(ThreadNo),
+        PAGE_RIGHTS_ALL,
+        GetCurrentProcess()
+    );
+
+    if(!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("MmuIsBufferValid for SyscallGetTotalThreadNo", status);
+        return status;
+    }
+
+    *ThreadNo = (QWORD) _GetNumberReadyThreads();
+
+    return STATUS_SUCCESS;
+}
+
+STATUS 
+SyscallGetThreadUmStackAddress(
+    OUT PVOID* StackBaseAddress
+    )
+{
+    STATUS status = MmuIsBufferValid(
+        StackBaseAddress,
+        sizeof(StackBaseAddress),
+        PAGE_RIGHTS_ALL,
+        GetCurrentProcess()
+    );
+
+    if(!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("MmuIsBufferValid for SyscallGetThreadUmStackAddress", status);
+        return status;
+    }
+
+    *StackBaseAddress = GetCurrentThread()->UserStack;
+    return STATUS_SUCCESS;
+}
+
+STATUS
+SyscallGetThreadUmStackSize(
+    OUT QWORD* StackSize
+    )
+{
+    STATUS status = MmuIsBufferValid(
+        StackSize,
+        sizeof(StackSize),
+        PAGE_RIGHTS_ALL,
+        GetCurrentProcess()
+    );
+
+    if(!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("MmuIsBufferValid for SyscallGetThreadUmStackSize", status);
+        return status;
+    }
+
+    *StackSize = GetCurrentThread()->StackSize;
+    return STATUS_SUCCESS;
+}
+
+STATUS 
+SyscallGetThreadUmEntryPoint(
+    OUT PVOID* EntryPoint
+    )
+{
+    STATUS status = MmuIsBufferValid(
+        EntryPoint,
+        sizeof(EntryPoint),
+        PAGE_RIGHTS_ALL,
+        GetCurrentProcess()
+    );
+
+    if(!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("MmuIsBufferValid for SyscallGetThreadUmEntryPoint", status);
+        return status;
+    }
+
+    *EntryPoint = GetCurrentThread()->EntryPoint;
+    return STATUS_SUCCESS;
+}

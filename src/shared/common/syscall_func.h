@@ -306,3 +306,29 @@ SyscallFileWrite(
     IN  QWORD                       BytesToWrite,
     OUT QWORD*                      BytesWritten
     );
+
+STATUS
+SyscallThreadGetName(
+    OUT char* ThreadName,
+    IN QWORD ThreadNameMaxLen
+    );
+
+STATUS 
+SyscallGetTotalThreadNo(
+    OUT QWORD* ThreadNo
+    );
+
+STATUS 
+SyscallGetThreadUmStackAddress(
+    OUT PVOID* StackBaseAddress
+    );
+
+STATUS
+SyscallGetThreadUmStackSize(
+    OUT QWORD* StackSize
+    );
+
+STATUS 
+SyscallGetThreadUmEntryPoint(
+    OUT PVOID* EntryPoint
+    );

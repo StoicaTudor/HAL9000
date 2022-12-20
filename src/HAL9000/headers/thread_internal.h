@@ -4,6 +4,7 @@
 #include "ref_cnt.h"
 #include "ex_event.h"
 #include "thread.h"
+#include "syscall_defs.h"
 
 typedef enum _THREAD_STATE
 {
@@ -89,8 +90,26 @@ typedef struct _THREAD
     // MUST be non-NULL for all threads which belong to user-mode processes
     PVOID                   UserStack;
 
+    PVOID                   EntryPoint;
+
     struct _PROCESS*        Process;
 } THREAD, *PTHREAD;
+
+typedef struct _HandleThreadPair 
+{
+    LIST_ENTRY          List;
+    UM_HANDLE           UmHandle;
+    PTHREAD             PThread;
+    BOOLEAN             Enabled;
+}HandleThreadPair, *PHandleThreadPair;
+
+struct _GlobalHandleThreadPairList
+{
+    LIST_ENTRY          List;
+    LOCK                ThreadHandleLock;
+};
+
+static struct _GlobalHandleThreadPairList HandleThreadPairsList;
 
 //******************************************************************************
 // Function:     ThreadSystemPreinit
@@ -282,3 +301,6 @@ void
 ThreadSetPriority(
     IN      THREAD_PRIORITY     NewPriority
     );
+
+DWORD
+ _GetNumberReadyThreads();

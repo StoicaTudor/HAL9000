@@ -72,11 +72,13 @@ goto end
 
 :config_CITADIN
 
-SET PXE_PATH="D:\Scoala\Facultate\A4S1\OSD\Lab\HAL9000\PXE"
 SET PATH_TO_VM_FILE="D:\Scoala\Facultate\A4S1\OSD\Lab\HAL9000\VM\HAL9000_VM\HAL9000.vmx"
-SET PATH_TO_VM_DISK="D:\Scoala\Facultate\A4S1\OSD\Lab\HAL9000\VM\HAL9000_VM\HAL9000.vmdk"
-SET PATH_TO_VIX_TOOLS="C:\Program Files (x86)\VMware\VMware Workstation"
+SET PXE_PATH="D:\Scoala\Facultate\A4S1\OSD\Lab\HAL9000\PXE"
 SET PATH_TO_LOG_FILE="D:\Scoala\Facultate\A4S1\OSD\Lab\HAL9000\VM\HAL9000_VM\HAL9000.log"
+SET VOL_MOUNT_LETTER="Q:"
+SET PATH_TO_VM_TOOLS="C:\Program Files (x86)\VMware\VMware Virtual Disk Development Kit"
+SET PATH_TO_VIX_TOOLS="C:\Program Files (x86)\VMware\VMware Workstation"
+SET PATH_TO_VM_DISK="D:\Scoala\Facultate\A4S1\OSD\Lab\HAL9000\VM\HAL9000_VM\HAL9000.vmdk"
 goto end
 
 :end

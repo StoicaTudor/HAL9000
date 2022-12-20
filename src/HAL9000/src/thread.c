@@ -332,24 +332,34 @@ ThreadCreateEx(
         return status;
     }
 
-    ProcessInsertThreadInList(Process, pThread);
 
+    ProcessInsertThreadInList(Process, pThread);
     // the reference must be done outside _ThreadInit
     _ThreadReference(pThread);
 
     if (!Process->PagingData->Data.KernelSpace)
     {
+        DWORD stackSize = 4 * PAGE_SIZE;
+
+        if(GetCurrentProcess()->Id % 2 == 0)
+            stackSize = 16 * PAGE_SIZE;
+        
+        LOG("Create user-mode stack MmuAllocStack -> stackSize = %d\n", stackSize);
         // Create user-mode stack
-        pThread->UserStack = MmuAllocStack(STACK_DEFAULT_SIZE,
+        pThread->UserStack = MmuAllocStack(stackSize,
                                            TRUE,
                                            FALSE,
                                            Process);
         if (pThread->UserStack == NULL)
         {
             status = STATUS_MEMORY_CANNOT_BE_COMMITED;
-            LOG_FUNC_ERROR_ALLOC("MmuAllocStack", STACK_DEFAULT_SIZE);
+            LOG_FUNC_ERROR_ALLOC("MmuAllocStack", stackSize);
+            pThread->StackSize = 0; // set it to 0, because we have an error
             return status;
         }
+
+        // if pThread->UserStack != NULL, set the stackSize
+        pThread->StackSize = stackSize;
 
         bProcessIniialThread = (Function == Process->HeaderInfo->Preferred.AddressOfEntryPoint);
 
@@ -389,6 +399,8 @@ ThreadCreateEx(
         firstArg =  (QWORD) Function;
         secondArg = (QWORD) Context;
     }
+
+    pThread->EntryPoint = pStartFunction;
 
     status = _ThreadSetupInitialState(pThread,
                                       pStartFunction,
@@ -1238,4 +1250,15 @@ _ThreadKernelFunction(
 
     ThreadExit(exitStatus);
     NOT_REACHED;
+}
+
+DWORD
+ _GetNumberReadyThreads()
+{
+    INTR_STATE dummyState;
+    LockAcquire(&m_threadSystemData.ReadyThreadsLock, &dummyState);
+    DWORD ReadyThreadsNr = ListSize(&m_threadSystemData.ReadyThreadsList);
+    LockRelease(&m_threadSystemData.ReadyThreadsLock, dummyState);
+
+    return ReadyThreadsNr;
 }

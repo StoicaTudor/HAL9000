@@ -270,8 +270,8 @@ VmmMapMemoryInternal(
 
     cr3.Raw = (QWORD) PagingData->BasePhysicalAddress;
 
-    LOG("Will map virtual address 0x%X to physical address 0x%X\n",
-        BaseAddress, PhysicalAddress);
+    // LOG("Will map virtual address 0x%X to physical address 0x%X\n",
+    //     BaseAddress, PhysicalAddress);
 
     _VmWalkPagingTables(cr3,
                         BaseAddress,

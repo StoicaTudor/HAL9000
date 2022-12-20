@@ -33,3 +33,4 @@
 #define HEAP_EXECUTIVE_TAG              ':XE '
 #define HEAP_PROCESS_TAG                ':CRP'
 #define HEAP_BOOT_TAG                   'TOOB'
+#define HEAP_PROJECT_2                  ':HP2'
