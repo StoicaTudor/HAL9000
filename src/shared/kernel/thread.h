@@ -119,3 +119,7 @@ THREAD_PRIORITY
 ThreadGetPriority(
     IN_OPT  PTHREAD             Thread
     );
+
+// Threads3
+// PLIST_ENTRY GetThatAllThreadsList();
+// PLOCK GetThatAllThreadsListLock();

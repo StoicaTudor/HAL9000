@@ -10,7 +10,9 @@
 #include "gdtmu.h"
 #include "pe_exports.h"
 
-#define TID_INCREMENT               4
+// Threads1 -> I am born on 01.01
+// #define TID_INCREMENT               4
+#define TID_INCREMENT               1
 
 #define THREAD_TIME_SLICE           1
 
@@ -357,6 +359,9 @@ ThreadCreateEx(
         // and the whole command line which spawned the process
         if (bProcessIniialThread)
         {
+            // Threads1
+            // put 1 on system's first thread
+            pThread->Id = 1;
             // It's one because we already incremented it when we called ProcessInsertThreadInList earlier
             ASSERT(Process->NumberOfThreads == 1);
 
@@ -413,6 +418,8 @@ ThreadCreateEx(
         ThreadUnblock(pThread);
     }
 
+    // Threads1
+    LOG("Thread [tid = 0x%X] is being created\n", pThread->Id);
     *Thread = pThread;
 
     return status;
@@ -793,6 +800,17 @@ _ThreadInit(
         pThread->Id = _ThreadSystemGetNextTid();
         pThread->State = ThreadStateBlocked;
         pThread->Priority = Priority;
+        // Threads2
+        if(GetCurrentThread() != NULL)
+        {
+            pThread->ParentThreadId = GetCurrentThread()->Id;
+        }
+
+        // Threads3
+        if(GetCurrentPcpu() != NULL)
+        {
+            pThread->ParentCpuId = GetCurrentPcpu()->ApicId;
+        }
 
         LockInit(&pThread->BlockLock);
 
@@ -1239,3 +1257,14 @@ _ThreadKernelFunction(
     ThreadExit(exitStatus);
     NOT_REACHED;
 }
+
+// Threads3
+// PLIST_ENTRY GetThatAllThreadsList()
+// {
+//     return &m_threadSystemData.AllThreadsList;
+// }
+
+// PLOCK GetThatAllThreadsListLock()
+// {
+//     return &m_threadSystemData.AllThreadsLock;
+// }

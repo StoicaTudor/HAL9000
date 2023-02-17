@@ -180,6 +180,10 @@ PmmReserveMemoryEx(
 
     LockRelease( &m_pmmData.AllocationLock, oldState);
 
+    // Memory4
+    // could be refined, but no time left
+    LOG("Physical range allocated: (0x%llu - 0x%llu)!\n", startIdx, (QWORD) idx * PAGE_SIZE);
+
     return (PHYSICAL_ADDRESS) ( (QWORD) idx * PAGE_SIZE );
 }
 

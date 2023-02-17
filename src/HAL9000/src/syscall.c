@@ -1,3 +1,4 @@
+// User1
 #include "HAL9000.h"
 #include "syscall.h"
 #include "gdtmu.h"
@@ -7,6 +8,7 @@
 #include "mmu.h"
 #include "process_internal.h"
 #include "dmp_cpu.h"
+#include "vmm.h"
 
 extern void SyscallEntry();
 
@@ -68,6 +70,16 @@ SyscallHandler(
             status = SyscallValidateInterface((SYSCALL_IF_VERSION)*pSyscallParameters);
             break;
         // STUDENT TODO: implement the rest of the syscalls
+        case SyscallIdVirtualAlloc:
+            status = SyscallVirtualAlloc(
+                (PVOID)pSyscallParameters[0],
+                (QWORD)pSyscallParameters[1],
+                (VMM_ALLOC_TYPE)pSyscallParameters[2],
+                (PAGE_RIGHTS)pSyscallParameters[3],
+                (UM_HANDLE)pSyscallParameters[4],
+                (QWORD)pSyscallParameters[5],
+                (PVOID*)pSyscallParameters);
+            break;
         default:
             LOG_ERROR("Unimplemented syscall called from User-space!\n");
             status = STATUS_UNSUPPORTED;
@@ -170,3 +182,40 @@ SyscallValidateInterface(
 }
 
 // STUDENT TODO: implement the rest of the syscalls
+
+STATUS
+SyscallVirtualAlloc(
+    IN_OPT      PVOID                   BaseAddress,
+    IN          QWORD                   Size,
+    IN          VMM_ALLOC_TYPE          AllocType,
+    IN          PAGE_RIGHTS             PageRights,
+    IN_OPT      UM_HANDLE               FileHandle,
+    IN_OPT      QWORD                   Key,
+    OUT         PVOID*                  AllocatedAddress
+    )
+{
+    UNREFERENCED_PARAMETER(Key);
+    UNREFERENCED_PARAMETER(FileHandle);
+
+    STATUS status = MmuIsBufferValid (
+        AllocatedAddress,
+        sizeof (AllocatedAddress),
+        PAGE_RIGHTS_ALL,
+        GetCurrentProcess()
+    );
+
+    if (!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("AllocatedAddress for SyscallVirtualAlloc ", status);
+        return status;
+    }
+    
+    AllocatedAddress = VmmAllocRegion(
+        BaseAddress,
+        Size,
+        AllocType,
+        PageRights
+    );
+    
+    return STATUS_SUCCESS;
+}

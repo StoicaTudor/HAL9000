@@ -90,6 +90,12 @@ typedef struct _THREAD
     PVOID                   UserStack;
 
     struct _PROCESS*        Process;
+
+    // Threads2
+    TID                 ParentThreadId;
+
+    // Threads 3
+    APIC_ID                 ParentCpuId;
 } THREAD, *PTHREAD;
 
 //******************************************************************************

@@ -24,6 +24,15 @@ typedef struct _VMM_DATA
     BYTE                    UncacheableIndex;
 } VMM_DATA, *PVMM_DATA;
 
+// Memory5
+typedef struct _PhysVirt 
+{
+    PHYSICAL_ADDRESS    PhysicalAddress;
+    PVOID               VirtualAddress;
+    LIST_ENTRY          ListEntry;
+    PAGE_RIGHTS         AccessRights;
+} PhysVirt, *PPhysVirt;
+
 typedef
 BOOLEAN
 (__cdecl FUNC_PageWalkCallback)(
@@ -72,6 +81,15 @@ void
 _VmSetupPagingStructure(
     IN      PPAGING_DATA            PagingData,
     IN      PVOID                   PagingStructure
+    );
+
+// Memory5
+static
+void
+_VmmAddFrameMappings(
+    IN          PHYSICAL_ADDRESS    PhysicalAddress,
+    IN          PVOID               VirtualAddress,
+    IN          PAGE_RIGHTS         AccessRights
     );
 
 static
@@ -239,6 +257,19 @@ VmmMapMemoryEx(
                          Invalidate,
                          Uncacheable
                          );
+
+    // Memory5
+    // PPhysVirt pPhysVirt;
+    // pPhysVirt = ExAllocatePoolWithTag(PoolAllocatePanicIfFail, sizeof(PhysVirt), HEAP_MMU_TAG, 0);
+    // pPhysVirt->PhysicalAddress = PhysicalAddress;
+    // pPhysVirt->VirtualAddress = pVirtualAddress;
+    // pPhysVirt->AccessRights = PageRights;
+
+    // PPROCESS pProcess= GetCurrentProcess();
+    // INTR_STATE intrState;
+    // LockAcquire(&pProcess->PhysVirtHeadLock, &intrState);
+    // InsertTailList(&pProcess->PhysVirtHead, &pPhysVirt->ListEntry);
+    // LockRelease(&pProcess->PhysVirtHeadLock, intrState);
 
     return pVirtualAddress;
 }
@@ -446,12 +477,12 @@ VmmChangeCr3(
     // Intel System Programming Manual Vol 3C
     // Section 4.10.4.1 Operations that Invalidate TLBs and Paging-Structure Caches
 
-    // If CR4.PCIDE = 1 and bit 63 of the instruction’s source operand is 0, the instruction invalidates all TLB
-    // entries associated with the PCID specified in bits 11:0 of the instruction’s source operand except those for
+    // If CR4.PCIDE = 1 and bit 63 of the instructionï¿½s source operand is 0, the instruction invalidates all TLB
+    // entries associated with the PCID specified in bits 11:0 of the instructionï¿½s source operand except those for
     // global pages.It also invalidates all entries in all paging - structure caches associated with that PCID.It is not
     // required to invalidate entries in the TLBs and paging - structure caches that are associated with other PCIDs.
 
-    // If CR4.PCIDE = 1 and bit 63 of the instruction’s source operand is 1, the instruction is not required to
+    // If CR4.PCIDE = 1 and bit 63 of the instructionï¿½s source operand is 1, the instruction is not required to
     // invalidate any TLB entries or entries in paging - structure caches.
     __writecr3((Invalidate ? 0 : MOV_TO_CR3_DO_NOT_INVALIDATE_PCID_MAPPINGS) | (QWORD)Pml4Base | Pcid);
 
@@ -608,6 +639,12 @@ VmmAllocRegionEx(
                                      Uncacheable,
                                      PagingData
                 );
+
+                // Memory5
+                // if (PagingData != NULL && !PagingData->Data.KernelSpace)
+                // {
+                //     _VmmAddFrameMappings(pa, pBaseAddress, noOfFrames);
+                // }
 
                 // Check if the mapping is backed up by a file
                 if (FileObject != NULL)
@@ -813,6 +850,12 @@ VmmSolvePageFault(
                                  uncacheable,
                                  PagingData
                                  );
+
+            // Memory5
+            // if (!PagingData->Data.KernelSpace)
+            // {
+            //     _VmmAddFrameMappings(pa, alignedAddress, 1);
+            // }
 
             // 3. If the virtual address is backed by a file read its contents
             if (pBackingFile != NULL)
@@ -1370,4 +1413,44 @@ BOOLEAN
     }
 
     return bContinue;
+}
+
+// Memory5
+static
+void
+_VmmAddFrameMappings(
+    IN          PHYSICAL_ADDRESS    PhysicalAddress,
+    IN          PVOID               VirtualAddress,
+    IN          PAGE_RIGHTS         AccessRights
+    )
+{
+    UNREFERENCED_PARAMETER(AccessRights);
+    UNREFERENCED_PARAMETER(VirtualAddress);
+    UNREFERENCED_PARAMETER(PhysicalAddress);
+    // PPROCESS pProcess;
+    // PPhysVirt pMapping;
+    // INTR_STATE intrState;
+
+    // pProcess = GetCurrentProcess();
+
+    // if (ProcessIsSystem(pProcess))
+    // {
+    //     return;
+    // }
+
+    // for (DWORD i = 0; i < 1; ++i)
+    // {
+    //     pMapping = ExAllocatePoolWithTag(PoolAllocatePanicIfFail, sizeof(PPhysVirt), HEAP_MMU_TAG, 0);
+
+    //     pMapping->PhysicalAddress = PtrOffset(PhysicalAddress, i * PAGE_SIZE);
+    //     pMapping->VirtualAddress = PtrOffset(VirtualAddress, i * PAGE_SIZE);
+    //     pMapping->AccessRights = PAGE_RIGHTS_ALL;
+
+    //     LockAcquire(&pProcess->PhysVirtHeadLock, &intrState);
+    //     InsertTailList(&pProcess->PhysVirtHead, &pMapping->ListEntry);
+    //     LockRelease(&pProcess->PhysVirtHeadLock, intrState);
+
+    //     LOG("Allocated entry from 0x%X -> 0x%X\n",
+    //         pMapping->VirtualAddress, pMapping->PhysicalAddress);
+    // }
 }

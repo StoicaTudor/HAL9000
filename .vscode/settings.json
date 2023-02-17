@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "thread_defs.h": "c",
+        "common_lib.h": "c",
+        "cpumu.h": "c"
+    }
+}

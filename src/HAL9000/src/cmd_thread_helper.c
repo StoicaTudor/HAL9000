@@ -43,6 +43,9 @@ typedef struct _BOUND_THREAD_CTX
 
 static FUNC_ThreadStart     _ThreadCpuBound;
 static FUNC_ThreadStart     _ThreadIoBound;
+// Threads3
+static FUNC_ThreadStart     _ThreadNothing;
+static FUNC_ThreadStart     _DisplayInfo;
 
 static
 void
@@ -137,6 +140,8 @@ void
     LOG("%10s", "Prt ticks|");
     LOG("%10s", "Ttl ticks|");
     LOG("%10s", "Process|");
+    // Threads2
+    LOG("%7s", "ParentTID|");
     LOG("\n");
 
     status = ThreadExecuteForEachThreadEntry(_CmdThreadPrint, NULL );
@@ -693,6 +698,8 @@ STATUS
     LOG("%9U%c", pThread->TickCountEarly, '|');
     LOG("%9U%c", pThread->TickCountCompleted + pThread->TickCountEarly, '|');
     LOG("%9x%c", pThread->Process->Id, '|');
+    // Threads2
+    LOG("%6x%c", pThread->ParentThreadId, '|');
     LOG("\n");
 
     return STATUS_SUCCESS;
@@ -770,6 +777,136 @@ STATUS
         ExEventWaitForSignal(&pCtx->Event);
         _ThreadBusyWait(pCtx->CpuUsage);
     }
+
+    return STATUS_SUCCESS;
+}
+
+// Threads3
+void
+(__cdecl CmdThreadFun)(
+    IN      QWORD       NumberOfParameters
+    )
+{
+    LOG("Enter CmdThreadFun\n");
+    ASSERT(NumberOfParameters == 0);
+    PTHREAD SpawnThread;
+    PTHREAD SpawnThreadChild0;
+    PTHREAD SpawnThreadChild1;
+    PTHREAD InfoThread;
+
+    STATUS status;
+    // PBOUND_THREAD_CTX pCtx = NULL;
+    PTHREAD mainThread = GetCurrentThread();
+
+    LOG("Enter try\n");
+    __try
+    {
+        LOG("Creating SpawnThread\n");
+        status = ThreadCreate("SpawnThread",
+                            ThreadPriorityDefault,
+                            _ThreadNothing,
+                            NULL,
+                            &SpawnThread);
+
+        if (!SUCCEEDED(status))
+        {
+            LOG_FUNC_ERROR("SpawnThread", status);
+            __leave;
+        }
+
+        SetCurrentThread(SpawnThread);
+
+        LOG("Creating SpawnThreadChild0\n");
+        status = ThreadCreate("SpawnThreadChild0",
+                            ThreadPriorityDefault,
+                            _ThreadNothing,
+                            NULL,
+                            &SpawnThreadChild0);
+
+        if (!SUCCEEDED(status))
+        {
+            LOG_FUNC_ERROR("SpawnThreadChild0", status);
+            __leave;
+        }
+
+        LOG("Creating SpawnThreadChild1\n");
+        status = ThreadCreate("SpawnThreadChild1",
+                            ThreadPriorityDefault,
+                            _ThreadNothing,
+                            NULL,
+                            &SpawnThreadChild1);
+
+        if (!SUCCEEDED(status))
+        {
+            LOG_FUNC_ERROR("SpawnThreadChild1", status);
+            __leave;
+        }
+
+        SetCurrentThread(mainThread);
+        
+        status = ThreadCreate("InfoThread",
+                    ThreadPriorityDefault,
+                    _DisplayInfo,
+                    NULL,
+                    &InfoThread);
+
+        if (!SUCCEEDED(status))
+        {
+            LOG_FUNC_ERROR("InfoThread", status);
+            __leave;
+        }
+    }
+    __finally
+    {
+        // if (pCtx != NULL)
+        // {
+        //     ExFreePoolWithTag(pCtx, HEAP_TEST_TAG);
+        //     pCtx = NULL;
+        // }
+        SetCurrentThread(mainThread);
+    }
+    SetCurrentThread(mainThread);
+} 
+
+// Threads3
+STATUS
+(__cdecl _ThreadNothing)(
+    IN_OPT      PVOID       Context
+    )
+{
+    ASSERT(NULL == Context);
+    return STATUS_SUCCESS;
+}
+
+// Threads3
+STATUS
+(__cdecl _DisplayInfo)(
+    IN_OPT      PVOID       Context
+    )
+{
+    ASSERT(NULL == Context);
+
+    // PLOCK AllThreadsListLock = GetThatAllThreadsListLock();
+    // PLIST_ENTRY AllThreadsList = GetThatAllThreadsList();
+    // PLIST_ENTRY pCurEntry;
+
+    // INTR_STATE intrState;
+    // LockAcquire(AllThreadsListLock, &intrState);
+    // for(pCurEntry = *AllThreadsList.Flink;
+    // pCurEntry != AllThreadsList;
+    // pCurEntry = pCurEntry->Flink)
+    // {
+    //     PTHREAD pThread = CONTAINING_RECORD(pCurEntry, THREAD, AllList);
+    //     LOG(
+    //         "TID = %x \n Name = %s \n TIDParent %x  \n CpuID %x",
+    //          pThread->Id,
+    //          pThread->Name,
+    //          pThread->ParentThreadId,
+    //          pThread->ParentCpuId,
+    //          );
+    // }
+    // LockRelease(AllThreadsListLock, intrState);
+
 
     return STATUS_SUCCESS;
 }
