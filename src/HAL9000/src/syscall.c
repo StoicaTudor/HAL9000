@@ -8,6 +8,7 @@
 #include "process_internal.h"
 #include "dmp_cpu.h"
 #include "thread_internal.h"
+#include "vmm.h"
 
 extern void SyscallEntry();
 
@@ -444,4 +445,84 @@ SyscallGetThreadUmEntryPoint(
 
     *EntryPoint = GetCurrentThread()->EntryPoint;
     return STATUS_SUCCESS;
+}
+
+STATUS
+SyscallVirtualAlloc(
+    IN_OPT      PVOID                   BaseAddress,
+    IN          QWORD                   Size,
+    IN          VMM_ALLOC_TYPE          AllocType,
+    IN          PAGE_RIGHTS             PageRights,
+    IN_OPT      UM_HANDLE               FileHandle,
+    IN_OPT      QWORD                   Key,
+    OUT         PVOID*                  AllocatedAddress
+    )
+{
+    // UNREFERENCED_PARAMETER(FileHandle)
+    // UNREFERENCED_PARAMETER(Key)
+    // UNREFERENCED_PARAMETER(AllocatedAddress)
+
+    DWORD nrInvalidParams = 0;
+
+    if(!(BaseAddress == NULL))
+        nrInvalidParams++;
+
+    if(!(FileHandle == UM_INVALID_HANDLE_VALUE))
+        nrInvalidParams++;
+    
+    if(!(Key == 0))
+        nrInvalidParams++;
+
+    if(nrInvalidParams == 1)
+        return STATUS_INVALID_PARAMETER1; 
+
+    if(nrInvalidParams == 2)
+        return STATUS_INVALID_PARAMETER2;
+
+    if(nrInvalidParams == 3)
+        return STATUS_INVALID_PARAMETER3;
+
+    STATUS status = MmuIsBufferValid(
+        AllocatedAddress,
+        sizeof(AllocatedAddress),
+        PAGE_RIGHTS_ALL,
+        GetCurrentProcess()
+    );
+
+    if(!SUCCEEDED(status))
+    {
+        LOG_FUNC_ERROR("AllocatedAddress for SyscallVirtualAlloc", status);
+        return status;
+    }
+
+    AllocatedAddress = VmmAllocRegion(
+        BaseAddress,
+        Size,
+        AllocType,
+        PageRights
+        );
+
+    return STATUS_SUCCESS;
+}
+
+STATUS
+SyscallVirtualFree(
+    IN          PVOID                   Address,
+    _When_(VMM_FREE_TYPE_RELEASE == FreeType, _Reserved_)
+    _When_(VMM_FREE_TYPE_RELEASE != FreeType, IN)
+                QWORD                   Size,
+    IN          VMM_FREE_TYPE           FreeType
+    )
+{
+    VmmFreeRegion(Address, Size, FreeType);
+    return STATUS_SUCCESS;
+}
+
+STATUS 
+SyscallGetPageFaultNo(
+    IN PVOID AllocatedVirtAddr,
+    OUT QWORD* PageFaultNo
+    )
+{
+
 }

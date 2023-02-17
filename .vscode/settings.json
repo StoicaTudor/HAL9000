@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "thread_internal.h": "c"
+        "thread_internal.h": "c",
+        "mdl.h": "c"
     }
 }

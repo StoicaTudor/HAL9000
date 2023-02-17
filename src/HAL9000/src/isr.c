@@ -84,7 +84,7 @@ void
 _IsrExceptionHandler(
     IN BYTE                         InterruptIndex,
     IN PINTERRUPT_STACK_COMPLETE    StackPointer,
-    IN BOOLEAN                      ErrorCodeAvailable,
+    IN BOOLEAN                      _IsrExceptionHandlerchErrorCodeAvailable,
     IN COMPLETE_PROCESSOR_STATE*             ProcessorState
     )
 {
